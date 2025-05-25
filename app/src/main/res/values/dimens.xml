@@ -34,6 +34,7 @@
     <dimen name="max_width">700dp</dimen>
     <dimen name="min_width">360dp</dimen>
     <dimen name="step_label_width">100.dp</dimen>
+    <dimen name="max_api_card">150dp</dimen>
 
 
 </resources>
