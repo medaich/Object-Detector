@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="extra_small">4dp</dimen>
+    <!--small padding-->
+    <dimen name="small">
+        8dp
+    </dimen>
+    <!--space between related elements-->
+    <dimen name="medium">
+        16dp
+    </dimen>
+
+    <!--space between sections-->
+    <dimen name="large">
+        32dp
+    </dimen>
+
+    <!--more space-->
+    <dimen name="extra_large">
+        48dp
+    </dimen>
+
+    <!--max image size-->
+    <dimen name="max_image_width">400dp</dimen>
+
+    <!--Step number-->
+    <dimen name="small_item">40dp</dimen>
+
+    <!--icon-->
+    <dimen name="medium_item">80dp</dimen>
+
+    <!--header-->
+    <dimen name="large_item">112dp</dimen>
+    <dimen name="max_width">700dp</dimen>
+    <dimen name="min_width">360dp</dimen>
+    <dimen name="step_label_width">100.dp</dimen>
+
+
+</resources>

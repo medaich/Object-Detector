@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">Object Detector</string>
+    <string name="app_description">Upload your image and watch AI work its magic ✨</string>
+    <string name="no_image_selected">Ready for your image</string>
+    <string name="add_image">Choose Image</string>
+    <string name="selected_image">Selected image</string>
+    <string name="select_image_toast">Pick an image to get started!</string>
+    <string name="api_selector">Choose Detection Method:</string>
+    <string name="start_detection">Start Detection</string>
+    <string name="image_source">Image Source</string>
+    <string name="image_source_desc">Choose where to get the image from.</string>
+    <string name="gallery">Gallery</string>
+    <string name="camera">Camera</string>
+    <string name="select_image">Select image</string>
+    <string name="select_api">Select API</string>
+    <string name="add_image_desc">Tap to select from gallery or camera</string>
+    <string name="remove_image">Remove image</string>
+    <string name="rest_api" translatable="false">Rest API</string>
+    <string name="rest_api_description">Reliable detection with broad compatibility 🌐</string>
+    <string name="grpc_api" translatable="false">gRPC</string>
+    <string name="grpc_api_description">Lightning-fast processing and efficiency ⚡</string>
+</resources>

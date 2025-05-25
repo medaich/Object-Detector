@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Object Detector</string>
+    <string name="app_description">
+        Ajouter votre image et observer l\'IA en action ✨
+    </string>
+    <string name="no_image_selected">Prêt pour votre image</string>
+    <string name="add_image">Choisir une Image</string>
+    <string name="selected_image">Image sélectionnée</string>
+    <string name="select_image_toast">Choisissez une image pour commencer!</string>
+    <string name="api_selector">Choisir la Méthode de Détection:</string>
+    <string name="start_detection">Commencer la Détection</string>
+    <string name="image_source">La Source d\'Image</string>
+    <string name="image_source_desc">Choisissez d\'où obtenir l\'image.</string>
+    <string name="gallery">Galerie</string>
+    <string name="camera">Caméra</string>
+    <string name="select_image">Sélectionner une image</string>
+    <string name="select_api">Sélectionner une API</string>
+    <string name="add_image_desc">Appuyez pour sélectionner depuis la galerie ou la caméra</string>
+    <string name="remove_image">Supprimer l\'image</string>
+    <string name="rest_api_description">Détection fiable avec une large compatibilité 🌐</string>
+    <string name="grpc_api_description">Traitement rapide et efficace ⚡</string>
+</resources>
