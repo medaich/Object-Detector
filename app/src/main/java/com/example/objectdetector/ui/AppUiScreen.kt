@@ -1,6 +1,8 @@
 package com.example.objectdetector.ui
 
 import ImageCard
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +20,7 @@ import com.example.objectdetector.ui.components.ApiSelector
 import com.example.objectdetector.ui.components.StepsIndicator
 import com.example.objectdetector.ui.components.UploadButton
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppUiScreen (
     modifier: Modifier = Modifier,
@@ -43,6 +46,7 @@ fun AppUiScreen (
         ImageCard(
             currImageBitmap = appUiState.currImageBitmap,
             onUriSelected = { uri, context -> appViewModel.onUriSelected(uri, context) },
+            predictions = appUiState.restResponse,
             modifier = Modifier
         )
         ApiSelector(

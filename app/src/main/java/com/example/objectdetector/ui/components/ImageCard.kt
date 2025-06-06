@@ -44,13 +44,16 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import coil3.compose.AsyncImage
 import com.example.objectdetector.R
+import com.example.objectdetector.ui.RestResponse
 import com.example.objectdetector.ui.components.EmptyImage
+import com.example.objectdetector.ui.components.PredictionUi
 import java.io.File
 
 @Composable
 fun ImageCard(
     onUriSelected: (uri: Uri?, context: Context) -> Unit,
     currImageBitmap: Bitmap?,
+    predictions: RestResponse?,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -206,6 +209,13 @@ fun ImageCard(
                             .size(dimensionResource(R.dimen.small_item))
                     )
                 }
+                PredictionUi(
+                    predictions = predictions,
+                    modifier = Modifier
+                        .align (
+                            Alignment.Center
+                        )
+                )
             }
         }
     }
