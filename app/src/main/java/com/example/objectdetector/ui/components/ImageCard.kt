@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -24,7 +25,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,7 +34,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
@@ -45,7 +44,9 @@ import androidx.core.content.FileProvider
 import coil3.compose.AsyncImage
 import com.example.objectdetector.R
 import com.example.objectdetector.ui.RestResponse
+import com.example.objectdetector.ui.components.CustomIconButton
 import com.example.objectdetector.ui.components.EmptyImage
+import com.example.objectdetector.ui.components.FullScreenImageDialog
 import com.example.objectdetector.ui.components.PredictionUi
 import java.io.File
 
@@ -58,6 +59,10 @@ fun ImageCard(
 ) {
     val context = LocalContext.current
     val imageUri = remember { mutableStateOf<Uri?>(null) }
+
+    // State for dialogs
+    var showSourceDialog by remember { mutableStateOf(false) }
+    var showFullScreenDialog by remember { mutableStateOf(false) }
 
     val imagePickerLauncherGallery = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
@@ -77,10 +82,10 @@ fun ImageCard(
         }
     )
 
-    var showDialog by remember { mutableStateOf(false) }
-    if (showDialog) {
+    // Image source selection dialog
+    if (showSourceDialog) {
         AlertDialog(
-            onDismissRequest = { showDialog = false },
+            onDismissRequest = { showSourceDialog = false },
             title = {
                 Text(
                     text = stringResource(R.string.image_source),
@@ -98,7 +103,7 @@ fun ImageCard(
             confirmButton = {
                 Button(
                     onClick = {
-                        showDialog = false
+                        showSourceDialog = false
                         imagePickerLauncherGallery
                             .launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     },
@@ -123,7 +128,7 @@ fun ImageCard(
             dismissButton = {
                 Button(
                     onClick = {
-                        showDialog = false
+                        showSourceDialog = false
                         val photoFile = createImageFile(context)
                         val photoUri = FileProvider.getUriForFile(
                             context,
@@ -155,6 +160,14 @@ fun ImageCard(
         )
     }
 
+    // Full-screen image dialog
+    if (showFullScreenDialog && currImageBitmap != null) {
+        FullScreenImageDialog(
+            bitmap = currImageBitmap,
+            onDismiss = { showFullScreenDialog = false }
+        )
+    }
+
     Card(
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
@@ -165,7 +178,7 @@ fun ImageCard(
         ),
         modifier = Modifier
             .clickable {
-                showDialog = true
+                showSourceDialog = true
             }
             .then(modifier)
             .widthIn(max = dimensionResource(R.dimen.max_image_width))
@@ -179,8 +192,7 @@ fun ImageCard(
     ) {
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .fillMaxSize()
+            modifier = Modifier.fillMaxSize()
         ) {
             if (currImageBitmap == null) {
                 EmptyImage(modifier = Modifier)
@@ -188,39 +200,42 @@ fun ImageCard(
                 AsyncImage(
                     model = currImageBitmap,
                     contentDescription = stringResource(R.string.selected_image),
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.clip(shape = MaterialTheme.shapes.large)
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxSize()
                 )
-                IconButton (
+
+                // Close button
+                CustomIconButton(
                     onClick = {
                         onUriSelected(null, context)
                     },
-                    modifier = Modifier
-                        .align(
-                            Alignment.TopEnd
-                        )
-                        .size(dimensionResource(R.dimen.small_item))
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = stringResource(R.string.remove_image),
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .size(dimensionResource(R.dimen.small_item))
-                    )
-                }
+                    icon = Icons.Default.Close,
+                    iconDescription = stringResource(R.string.close),
+                    modifier = Modifier.align(Alignment.TopEnd)
+                )
+
+                // Full-screen button
+                CustomIconButton(
+                    onClick = {
+                        showFullScreenDialog = true
+                    },
+                    icon = Icons.Default.OpenInFull,
+                    iconDescription = stringResource(R.string.full_screen),
+                    modifier = Modifier.align(Alignment.BottomStart)
+                )
+
                 PredictionUi(
                     predictions = predictions,
-                    modifier = Modifier
-                        .align (
-                            Alignment.Center
-                        )
+                    modifier = Modifier.align(Alignment.Center)
                 )
             }
         }
     }
 }
+
 fun createImageFile(context: Context): File {
     val storageDir = context.cacheDir
     return File.createTempFile("camera_image_", ".jpg", storageDir)
 }
+

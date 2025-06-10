@@ -112,6 +112,7 @@
     <string name="desk">bureau</string>
     <string name="door">porte</string>
     <string name="blender">fourchette</string>
-
-
+    <string name="close">fermer</string>
+    <string name="full_screen">plein écran</string>
+    <string name="exit_full_screen">quitter le plein écran</string>
 </resources>

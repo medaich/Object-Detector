@@ -111,5 +111,8 @@
     <string name="desk">desk</string>
     <string name="door">door</string>
     <string name="blender">blender</string>
+    <string name="close">close</string>
+    <string name="full_screen">full screen</string>
+    <string name="exit_full_screen">exit full screen</string>
 
 </resources>

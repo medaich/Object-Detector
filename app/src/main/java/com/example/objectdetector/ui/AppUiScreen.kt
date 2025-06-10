@@ -12,6 +12,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.objectdetector.R
@@ -26,6 +27,7 @@ fun AppUiScreen (
     modifier: Modifier = Modifier,
     appViewModel: AppViewModel = viewModel()
 ) {
+    val context = LocalContext.current
 
     val apiList = DataSource.apiList
     val appUiState by appViewModel.uiState.collectAsState()
@@ -44,7 +46,7 @@ fun AppUiScreen (
             modifier = Modifier.fillMaxWidth()
         )
         ImageCard(
-            currImageBitmap = appUiState.currImageBitmap,
+            currImageBitmap = appUiState.annotatedBitmap ?: appUiState.currImageBitmap,
             onUriSelected = { uri, context -> appViewModel.onUriSelected(uri, context) },
             predictions = appUiState.restResponse,
             modifier = Modifier
@@ -58,7 +60,8 @@ fun AppUiScreen (
         )
         UploadButton(
             currStepIdx = appUiState.currStepIdx,
-            onUpload = { appViewModel.onUpload() }
+            predictions = appUiState.restResponse,
+            onUpload = { appViewModel.onUpload(context) }
         )
     }
 }
