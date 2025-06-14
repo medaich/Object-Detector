@@ -3,7 +3,7 @@ package com.example.objectdetector.ui
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Color
+import androidx.compose.ui.graphics.Color
 import android.graphics.ImageDecoder
 import android.graphics.Paint
 import android.graphics.Rect
@@ -14,9 +14,11 @@ import android.os.Build
 import android.provider.MediaStore
 import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.scale
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.objectdetector.R
 import com.example.objectdetector.data.DataSource
 import com.example.objectdetector.network.Prediction
 import com.example.objectdetector.network.PredictionRequest
@@ -68,17 +70,18 @@ class AppViewModel: ViewModel() {
         _uiState.update { currState ->
             currState.copy(
                 currApiIdx = idx,
+                annotatedBitmap = null,
                 currStepIdx = if (_uiState.value.currImageBitmap == null) 0 else 2
             )
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun onUpload(context: Context) {
+    fun onUpload(context: Context, primaryColor: Color, onPrimaryColor: Color) {
         // toast preparing the image
         Toast.makeText(
             context,
-            "Preparing image...",
+            context.getString(R.string.preparing_image),
             Toast.LENGTH_SHORT
         ).show()
 
@@ -111,7 +114,9 @@ class AppViewModel: ViewModel() {
                             currState.copy(
                                 annotatedBitmap = currState.currImageBitmap?.annotateWithDetections(
                                     currState.apiResponse.data.predictions.first(),
-                                    context
+                                    context,
+                                    primaryColor,
+                                    onPrimaryColor
                                 )
                             )
                         else
@@ -121,7 +126,9 @@ class AppViewModel: ViewModel() {
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
-                        apiResponse = ApiResponse.Error("Image processing failed: ${e.message}")
+                        apiResponse = ApiResponse.Error(
+                            context.getString(R.string.something_went_wrong)
+                        )
                     )
                 }
             }
@@ -146,8 +153,8 @@ class AppViewModel: ViewModel() {
             try {
                 Toast.makeText(
                     context,
-                    if (attempt == 0) "Processing image via REST..." 
-                    else "Retrying REST request (${attempt + 1}/$MAX_RETRY_ATTEMPTS)...",
+                    if (attempt == 0) context.getString(R.string.processing_image)
+                    else context.getString(R.string.retrying),
                     Toast.LENGTH_SHORT
                 ).show()
 
@@ -167,22 +174,18 @@ class AppViewModel: ViewModel() {
                 
             } catch (e: Exception) {
                 lastException = e
-                val errorMessage = when {
-                    e is kotlinx.coroutines.TimeoutCancellationException -> "REST request timeout"
-                    e.message?.contains("ConnectException") == true -> "REST connection failed"
-                    e.message?.contains("SocketTimeoutException") == true -> "REST request timeout"
-                    e.message?.contains("UnknownHostException") == true -> "REST server unreachable"
-                    else -> "REST error: ${e.message}"
-                }
                 
                 if (attempt < MAX_RETRY_ATTEMPTS - 1) {
                     // Exponential backoff delay
                     delay(INITIAL_RETRY_DELAY_MS * (attempt + 1))
                 } else {
-                    // Final attempt failed
+                    // Final attempt failed - show user-friendly error
+                    val userFriendlyError = getUserFriendlyError(e)
                     _uiState.update {
                         it.copy(
-                            apiResponse = ApiResponse.Error(errorMessage)
+                            apiResponse = ApiResponse.Error(
+                                context.getString(userFriendlyError)
+                            )
                         )
                     }
                 }
@@ -191,7 +194,8 @@ class AppViewModel: ViewModel() {
         
         Toast.makeText(
             context,
-            "REST processing ${if (lastException != null) "failed" else "finished"}...",
+            if (lastException != null) context.getString(R.string.something_went_wrong)
+            else context.getString(R.string.done),
             Toast.LENGTH_SHORT
         ).show()
     }
@@ -204,8 +208,8 @@ class AppViewModel: ViewModel() {
             try {
                 Toast.makeText(
                     context,
-                    if (attempt == 0) "Processing image via gRPC..." 
-                    else "Retrying gRPC request (${attempt + 1}/$MAX_RETRY_ATTEMPTS)...",
+                    if (attempt == 0) context.getString(R.string.processing_image)
+                    else context.getString(R.string.retrying),
                     Toast.LENGTH_SHORT
                 ).show()
 
@@ -225,23 +229,18 @@ class AppViewModel: ViewModel() {
                 
             } catch (e: Exception) {
                 lastException = e
-                val errorMessage = when {
-                    e is kotlinx.coroutines.TimeoutCancellationException -> "gRPC request timeout"
-                    e.message?.contains("UNAVAILABLE") == true -> "gRPC server unavailable"
-                    e.message?.contains("DEADLINE_EXCEEDED") == true -> "gRPC request timeout"
-                    e.message?.contains("UNAUTHENTICATED") == true -> "gRPC authentication failed"
-                    e.message?.contains("ConnectException") == true -> "gRPC connection failed"
-                    else -> "gRPC error: ${e.message}"
-                }
                 
                 if (attempt < MAX_RETRY_ATTEMPTS - 1) {
                     // Exponential backoff delay (same as REST)
                     delay(INITIAL_RETRY_DELAY_MS * (attempt + 1))
                 } else {
-                    // Final attempt failed
+                    // Final attempt failed - show user-friendly error
+                    val userFriendlyError = getUserFriendlyError(e)
                     _uiState.update {
                         it.copy(
-                            apiResponse = ApiResponse.Error(errorMessage)
+                            apiResponse = ApiResponse.Error(
+                                context.getString(userFriendlyError)
+                            )
                         )
                     }
                 }
@@ -250,9 +249,26 @@ class AppViewModel: ViewModel() {
         
         Toast.makeText(
             context,
-            "gRPC processing ${if (lastException != null) "failed" else "finished"}...",
+            if (lastException != null) context.getString(R.string.something_went_wrong)
+            else context.getString(R.string.done),
             Toast.LENGTH_SHORT
         ).show()
+    }
+
+    // Simple user-friendly error mapping
+    private fun getUserFriendlyError(exception: Exception): Int {
+        return when {
+            // Network connectivity issues
+            exception.message?.contains("ConnectException") == true ||
+            exception.message?.contains("UnknownHostException") == true ||
+            exception.message?.contains("SocketTimeoutException") == true ||
+            exception.message?.contains("UNAVAILABLE") == true ||
+            exception is kotlinx.coroutines.TimeoutCancellationException -> {
+                R.string.no_internet_connection
+            }
+            // Everything else - server errors, parsing errors, etc.
+            else -> R.string.something_went_wrong_please_try_again
+        }
     }
 }
 
@@ -316,20 +332,17 @@ fun pixelImageFromBitmap(bitmap: Bitmap): Array<Array<Array<Int>>> {
 // Extension function to annotate bitmap with detection results
 fun Bitmap.annotateWithDetections(
     prediction: Prediction,
-    context: Context
-    ): Bitmap {
+    context: Context,
+    primaryColor: Color,
+    onPrimaryColor: Color
+): Bitmap {
     // Create a mutable copy of the bitmap
     val annotatedBitmap = this.copy(Bitmap.Config.ARGB_8888, true)
     val canvas = Canvas(annotatedBitmap)
-
-    // Define colors for different object classes
-    val colors = listOf(
-        Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW,
-        Color.CYAN, Color.MAGENTA
-    )
-
+    
     // Paint for bounding boxes
     val boxPaint = Paint().apply {
+        color = primaryColor.toArgb()
         style = Paint.Style.STROKE
         strokeWidth = 8f
         isAntiAlias = true
@@ -337,26 +350,22 @@ fun Bitmap.annotateWithDetections(
 
     // Paint for labels background
     val labelBackgroundPaint = Paint().apply {
+        color = primaryColor.toArgb()
         style = Paint.Style.FILL
         isAntiAlias = true
     }
 
     // Paint for label text
     val labelTextPaint = Paint().apply {
-        color = Color.WHITE
+        color = onPrimaryColor.toArgb()
         textSize = 48f
         isAntiAlias = true
         typeface = Typeface.DEFAULT_BOLD
     }
 
-    prediction.detectionBoxes.slice(0..prediction.numDetections.toInt() - 1).forEachIndexed { index, boundingBox ->
-        // Get color for this detection (cycle through colors)
-        val color = colors[index % colors.size]
-
-        // Set box color
-        boxPaint.color = color
-        labelBackgroundPaint.color = color
-
+    // Process only the relevant detections
+    prediction.detectionBoxes.slice(0..prediction.numDetections.toInt() - 1)
+        .forEachIndexed { index, boundingBox ->
         // Draw bounding box
         canvas.drawRect(
             boundingBox[1] * width,
@@ -378,8 +387,8 @@ fun Bitmap.annotateWithDetections(
         labelTextPaint.getTextBounds(labelText, 0, labelText.length, textBounds)
 
         // Calculate label position
-        val labelX = boundingBox[1] * width
-        val labelY = boundingBox[0] * height - textBounds.height() + 32f
+        val labelX = boundingBox[1] * width + 8f
+        val labelY = boundingBox[0] * height - textBounds.height() + 56f
 
         // Draw label background
         val labelBackgroundRect = RectF(

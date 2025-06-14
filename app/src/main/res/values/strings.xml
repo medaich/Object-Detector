@@ -114,5 +114,14 @@
     <string name="close">close</string>
     <string name="full_screen">full screen</string>
     <string name="exit_full_screen">exit full screen</string>
+    <string name="preparing_image">Preparing image…</string>
+    <string name="something_went_wrong">Something went wrong</string>
+    <string name="done">Done!</string>
+    <string name="processing_image">Processing image…</string>
+    <string name="retrying">Retrying…</string>
+    <string name="no_internet_connection">Check your internet connection and try again</string>
+    <string name="something_went_wrong_please_try_again">Something went wrong. Please try again</string>
+    <string name="download_image">Download image</string>
+    <string name="image_saved">Image saved to gallery</string>
 
 </resources>

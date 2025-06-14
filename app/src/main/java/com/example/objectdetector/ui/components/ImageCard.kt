@@ -238,4 +238,3 @@ fun createImageFile(context: Context): File {
     val storageDir = context.cacheDir
     return File.createTempFile("camera_image_", ".jpg", storageDir)
 }
-

@@ -1,20 +1,20 @@
 package com.example.objectdetector.ui.components
 
+import android.content.ContentValues
 import android.graphics.Bitmap
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloseFullscreen
-import androidx.compose.material.icons.filled.OpenInFull
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,9 +27,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
@@ -41,6 +40,8 @@ fun FullScreenImageDialog(
     bitmap: Bitmap,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+
     var scale by remember { mutableFloatStateOf(1f) }
     var rotation by remember { mutableFloatStateOf(0f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
@@ -89,6 +90,33 @@ fun FullScreenImageDialog(
                 icon = Icons.Filled.CloseFullscreen,
                 iconDescription = stringResource(R.string.exit_full_screen),
                 modifier = Modifier.align(Alignment.BottomStart)
+            )
+
+            // Download button
+
+            CustomIconButton(
+                onClick = {
+                    // Save image to gallery
+                    val contentResolver = context.contentResolver
+                    val contentValues = ContentValues().apply {
+                        put(MediaStore.MediaColumns.DISPLAY_NAME, "annotated_image.png")
+                        put(MediaStore.MediaColumns.MIME_TYPE, "image/png")
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
+                        }
+                    }
+
+                    val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+                    uri?.let { imageUri ->
+                        contentResolver.openOutputStream(imageUri)?.use { outputStream ->
+                            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+                            Toast.makeText(context, context.getString(R.string.image_saved), Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                },
+                icon = Icons.Filled.Download,
+                iconDescription = stringResource(R.string.download_image),
+                modifier = Modifier.align(Alignment.BottomEnd)
             )
         }
     }

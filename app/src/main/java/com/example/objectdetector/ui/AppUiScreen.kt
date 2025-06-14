@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -28,6 +29,8 @@ fun AppUiScreen (
     appViewModel: AppViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
 
     val apiList = DataSource.apiList
     val appUiState by appViewModel.uiState.collectAsState()
@@ -61,7 +64,7 @@ fun AppUiScreen (
         UploadButton(
             currStepIdx = appUiState.currStepIdx,
             predictions = appUiState.apiResponse,
-            onUpload = { appViewModel.onUpload(context) }
+            onUpload = { appViewModel.onUpload(context, primaryColor, onPrimaryColor) }
         )
     }
 }
