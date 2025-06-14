@@ -8,27 +8,27 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.example.objectdetector.ui.RestResponse
+import com.example.objectdetector.ui.ApiResponse
 
 @Composable
-fun PredictionUi(predictions: RestResponse?, modifier: Modifier = Modifier){
+fun PredictionUi(predictions: ApiResponse?, modifier: Modifier = Modifier){
     Box(
         modifier.fillMaxSize()
     )
     {
         when (predictions) {
-            is RestResponse.Loading -> LoadingUi(
+            is ApiResponse.Loading -> LoadingUi(
                 Modifier.align(
                     Alignment.Center
                 )
             )
-            is RestResponse.Error -> ErrorUi(
+            is ApiResponse.Error -> ErrorUi(
                 predictions.message.toString(),
                 Modifier.align(
                 Alignment.Center
                 )
             )
-            is RestResponse.Success -> if (predictions.data.predictions.first().numDetections.toInt() == 0)
+            is ApiResponse.Success -> if (predictions.data.predictions.first().numDetections.toInt() == 0)
                 ErrorUi("No objects detected", Modifier.align(
                     Alignment.Center
                     )

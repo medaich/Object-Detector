@@ -48,7 +48,7 @@ fun AppUiScreen (
         ImageCard(
             currImageBitmap = appUiState.annotatedBitmap ?: appUiState.currImageBitmap,
             onUriSelected = { uri, context -> appViewModel.onUriSelected(uri, context) },
-            predictions = appUiState.restResponse,
+            predictions = appUiState.apiResponse,
             modifier = Modifier
         )
         ApiSelector(
@@ -60,7 +60,7 @@ fun AppUiScreen (
         )
         UploadButton(
             currStepIdx = appUiState.currStepIdx,
-            predictions = appUiState.restResponse,
+            predictions = appUiState.apiResponse,
             onUpload = { appViewModel.onUpload(context) }
         )
     }
