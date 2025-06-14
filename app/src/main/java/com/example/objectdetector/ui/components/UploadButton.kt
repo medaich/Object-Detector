@@ -7,17 +7,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.example.objectdetector.R
-import com.example.objectdetector.ui.RestResponse
+import com.example.objectdetector.ui.ApiResponse
 
 @Composable
 fun UploadButton(
     currStepIdx: Int,
     onUpload: () -> Unit,
-    predictions: RestResponse?,
+    predictions: ApiResponse?,
     modifier: Modifier = Modifier
 ) {
     Button(
-        enabled = currStepIdx != 0 && predictions !is RestResponse.Loading,
+        enabled = currStepIdx != 0 && predictions !is ApiResponse.Loading,
         onClick = onUpload,
         modifier = modifier
     ) {

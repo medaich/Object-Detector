@@ -8,11 +8,11 @@ data class AppUiState(
     val annotatedBitmap : Bitmap? = null,
     val currApiIdx: Int? = 0,
     val currStepIdx: Int = 0,
-    val restResponse : RestResponse? = null
+    val apiResponse : ApiResponse? = null
 )
 
-sealed interface RestResponse {
-    data class Success(val data: PredictionResponse) : RestResponse
-    data class Error(val message: String) : RestResponse
-    object Loading : RestResponse
+sealed interface ApiResponse {
+    data class Success(val data: PredictionResponse) : ApiResponse
+    data class Error(val message: String) : ApiResponse
+    object Loading : ApiResponse
 }

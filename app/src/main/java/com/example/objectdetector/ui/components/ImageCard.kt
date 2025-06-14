@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import coil3.compose.AsyncImage
 import com.example.objectdetector.R
-import com.example.objectdetector.ui.RestResponse
+import com.example.objectdetector.ui.ApiResponse
 import com.example.objectdetector.ui.components.CustomIconButton
 import com.example.objectdetector.ui.components.EmptyImage
 import com.example.objectdetector.ui.components.FullScreenImageDialog
@@ -54,7 +54,7 @@ import java.io.File
 fun ImageCard(
     onUriSelected: (uri: Uri?, context: Context) -> Unit,
     currImageBitmap: Bitmap?,
-    predictions: RestResponse?,
+    predictions: ApiResponse?,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current

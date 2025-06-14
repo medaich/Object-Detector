@@ -22,14 +22,29 @@ import com.example.objectdetector.network.Prediction
 import com.example.objectdetector.network.PredictionRequest
 import com.example.objectdetector.network.restApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 
 class AppViewModel: ViewModel() {
+
+    override fun onCleared() {
+        super.onCleared()
+        // Clean up gRPC resources when ViewModel is destroyed
+        com.example.objectdetector.network.grpcApi.service.shutdown()
+    }
+
+    companion object {
+        private const val MAX_RETRY_ATTEMPTS = 3
+        private const val INITIAL_RETRY_DELAY_MS = 1000L
+        private const val REQUEST_TIMEOUT_MS = 30000L
+    }
+
     private val _uiState = MutableStateFlow(AppUiState())
     val uiState: StateFlow<AppUiState> = _uiState.asStateFlow()
 
@@ -70,7 +85,7 @@ class AppViewModel: ViewModel() {
         _uiState.update { currState ->
             currState.copy(
                 currStepIdx = 3,
-                restResponse = RestResponse.Loading
+                apiResponse = ApiResponse.Loading
             )
         }
 
@@ -85,13 +100,17 @@ class AppViewModel: ViewModel() {
                         pixelImageFromBitmap(resizedBitmap)
                     }
 
-                    // Make network request
-                    predictRest(pixelatedImage, context)
+                    // Make network request based on selected API
+                    when (_uiState.value.currApiIdx) {
+                        0 -> predictRest(pixelatedImage, context)
+                        1 -> predictGrpc(pixelatedImage, context)
+                    }
+
                     _uiState.update { currState ->
-                        if (currState.restResponse is RestResponse.Success)
+                        if (currState.apiResponse is ApiResponse.Success)
                             currState.copy(
                                 annotatedBitmap = currState.currImageBitmap?.annotateWithDetections(
-                                    currState.restResponse.data.predictions.first(),
+                                    currState.apiResponse.data.predictions.first(),
                                     context
                                 )
                             )
@@ -102,7 +121,7 @@ class AppViewModel: ViewModel() {
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
-                        restResponse = RestResponse.Error("Image processing failed: ${e.message}")
+                        apiResponse = ApiResponse.Error("Image processing failed: ${e.message}")
                     )
                 }
             }
@@ -120,36 +139,120 @@ class AppViewModel: ViewModel() {
             )
         )
 
-        try {
-            // Network request on IO thread
-            Toast.makeText(
-                context,
-                "Processing image...",
-                Toast.LENGTH_SHORT
-            ).show()
+        var lastException: Exception? = null
+        
+        // Unified retry logic
+        repeat(MAX_RETRY_ATTEMPTS) { attempt ->
+            try {
+                Toast.makeText(
+                    context,
+                    if (attempt == 0) "Processing image via REST..." 
+                    else "Retrying REST request (${attempt + 1}/$MAX_RETRY_ATTEMPTS)...",
+                    Toast.LENGTH_SHORT
+                ).show()
 
-            val response = withContext(Dispatchers.IO) {
-                restApi.retrofitService.predict(predictionRequest)
-            }
+                // Network request with timeout handling
+                val response = withContext(Dispatchers.IO) {
+                    withTimeout(REQUEST_TIMEOUT_MS) {
+                        restApi.retrofitService.predict(predictionRequest)
+                    }
+                }
 
-            _uiState.update {
-                it.copy(
-                    restResponse = RestResponse.Success(response)
-                )
+                _uiState.update {
+                    it.copy(
+                        apiResponse = ApiResponse.Success(response)
+                    )
+                }
+                return // Success, exit retry loop
+                
+            } catch (e: Exception) {
+                lastException = e
+                val errorMessage = when {
+                    e is kotlinx.coroutines.TimeoutCancellationException -> "REST request timeout"
+                    e.message?.contains("ConnectException") == true -> "REST connection failed"
+                    e.message?.contains("SocketTimeoutException") == true -> "REST request timeout"
+                    e.message?.contains("UnknownHostException") == true -> "REST server unreachable"
+                    else -> "REST error: ${e.message}"
+                }
+                
+                if (attempt < MAX_RETRY_ATTEMPTS - 1) {
+                    // Exponential backoff delay
+                    delay(INITIAL_RETRY_DELAY_MS * (attempt + 1))
+                } else {
+                    // Final attempt failed
+                    _uiState.update {
+                        it.copy(
+                            apiResponse = ApiResponse.Error(errorMessage)
+                        )
+                    }
+                }
             }
-        } catch (e: Exception) {
-            _uiState.update {
-                it.copy(
-                    restResponse = RestResponse.Error(e.message.toString())
-                )
-            }
-        } finally {
-            Toast.makeText(
-                context,
-                "Processing finished...",
-                Toast.LENGTH_SHORT
-            ).show()
         }
+        
+        Toast.makeText(
+            context,
+            "REST processing ${if (lastException != null) "failed" else "finished"}...",
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    private suspend fun predictGrpc(pixelatedImage: Array<Array<Array<Int>>>, context: Context) {
+        var lastException: Exception? = null
+        
+        // Unified retry logic (same as REST)
+        repeat(MAX_RETRY_ATTEMPTS) { attempt ->
+            try {
+                Toast.makeText(
+                    context,
+                    if (attempt == 0) "Processing image via gRPC..." 
+                    else "Retrying gRPC request (${attempt + 1}/$MAX_RETRY_ATTEMPTS)...",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                // Network request with unified timeout handling
+                val response = withContext(Dispatchers.IO) {
+                    withTimeout(REQUEST_TIMEOUT_MS) {
+                        com.example.objectdetector.network.grpcApi.service.predict(pixelatedImage)
+                    }
+                }
+
+                _uiState.update {
+                    it.copy(
+                        apiResponse = ApiResponse.Success(response)
+                    )
+                }
+                return // Success, exit retry loop
+                
+            } catch (e: Exception) {
+                lastException = e
+                val errorMessage = when {
+                    e is kotlinx.coroutines.TimeoutCancellationException -> "gRPC request timeout"
+                    e.message?.contains("UNAVAILABLE") == true -> "gRPC server unavailable"
+                    e.message?.contains("DEADLINE_EXCEEDED") == true -> "gRPC request timeout"
+                    e.message?.contains("UNAUTHENTICATED") == true -> "gRPC authentication failed"
+                    e.message?.contains("ConnectException") == true -> "gRPC connection failed"
+                    else -> "gRPC error: ${e.message}"
+                }
+                
+                if (attempt < MAX_RETRY_ATTEMPTS - 1) {
+                    // Exponential backoff delay (same as REST)
+                    delay(INITIAL_RETRY_DELAY_MS * (attempt + 1))
+                } else {
+                    // Final attempt failed
+                    _uiState.update {
+                        it.copy(
+                            apiResponse = ApiResponse.Error(errorMessage)
+                        )
+                    }
+                }
+            }
+        }
+        
+        Toast.makeText(
+            context,
+            "gRPC processing ${if (lastException != null) "failed" else "finished"}...",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 }
 
