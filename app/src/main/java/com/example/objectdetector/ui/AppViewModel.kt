@@ -54,6 +54,7 @@ class AppViewModel: ViewModel() {
         _uiState.update {currState ->
             currState.copy(
                 currImageBitmap = bitmap,
+                apiResponse = null,
                 annotatedBitmap = null,
                 currStepIdx = if(bitmap == null) 0 else 1
             )

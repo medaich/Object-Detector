@@ -122,7 +122,7 @@
     <string name="done">Terminé !</string>
     <string name="processing_image">Traitement de l\'image…</string>
     <string name="retrying">Nouvelle tentative…</string>
-    <string name="no_internet_connection">Vérifiez votre connexion Internet et réessayez</string>
+    <string name="no_internet_connection">Pas de connexion internet. Veuillez vérifier votre réseau et réessayer</string>
     <string name="something_went_wrong_please_try_again">Une erreur est survenue. Veuillez réessayer.</string>
     <string name="download_image">Télécharger l\'image</string>
     <string name="image_saved">L\'image a été sauvegardé dans le galerie</string>
