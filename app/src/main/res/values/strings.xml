@@ -1,6 +1,6 @@
 <resources>
-    <string name="app_name">Object Detector</string>
-    <string name="app_description">Upload your image and watch AI work its magic ✨</string>
+    <string name="app_name" translatable="false">Nurosee</string>
+    <string name="app_description">Let AI recognize your world. ✨</string>
     <string name="no_image_selected">Ready for your image</string>
     <string name="add_image">Choose Image</string>
     <string name="selected_image">Selected image</string>

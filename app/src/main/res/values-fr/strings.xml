@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Object Detector</string>
-    <string name="app_description">
-        Ajouter votre image et observer l\'IA en action ✨
-    </string>
+    <string name="app_description">Laissez l’IA reconnaître votre monde. ✨</string>
     <string name="no_image_selected">Prêt pour votre image</string>
     <string name="add_image">Choisir une Image</string>
     <string name="selected_image">Image sélectionnée</string>
