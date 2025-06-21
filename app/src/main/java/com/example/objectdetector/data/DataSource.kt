@@ -18,8 +18,8 @@ object DataSource {
     )
 
     val uiSteps = listOf(
-        R.string.select_image,
         R.string.select_api,
+        R.string.select_image,
         R.string.start_detection
     )
 

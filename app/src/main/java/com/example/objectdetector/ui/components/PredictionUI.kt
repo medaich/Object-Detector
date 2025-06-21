@@ -16,20 +16,20 @@ import com.example.objectdetector.R
 import com.example.objectdetector.ui.ApiResponse
 
 @Composable
-fun PredictionUi(predictions: ApiResponse?, modifier: Modifier = Modifier){
+fun PredictionUi(apiResponse: ApiResponse?, modifier: Modifier = Modifier){
     Box(
         modifier.fillMaxSize()
     )
     {
-        when (predictions) {
+        when (apiResponse) {
             is ApiResponse.Loading -> LoadingUi()
             is ApiResponse.Error -> ErrorUi(
-                predictions.message.toString(),
+                apiResponse.message.toString(),
                 Modifier.align(
                 Alignment.Center
                 )
             )
-            is ApiResponse.Success -> if (predictions.data.predictions.first().numDetections.toInt() == 0)
+            is ApiResponse.Success -> if (apiResponse.data.predictions.first().numDetections.toInt() == 0)
                 ErrorUi("No objects detected", Modifier.align(
                     Alignment.Center
                     )

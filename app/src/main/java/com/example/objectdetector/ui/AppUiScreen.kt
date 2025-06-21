@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -20,7 +19,6 @@ import com.example.objectdetector.R
 import com.example.objectdetector.data.DataSource
 import com.example.objectdetector.ui.components.ApiSelector
 import com.example.objectdetector.ui.components.StepsIndicator
-import com.example.objectdetector.ui.components.UploadButton
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -29,9 +27,6 @@ fun AppUiScreen (
     appViewModel: AppViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
-
     val apiList = DataSource.apiList
     val appUiState by appViewModel.uiState.collectAsState()
 
@@ -51,20 +46,15 @@ fun AppUiScreen (
         ImageCard(
             currImageBitmap = appUiState.annotatedBitmap ?: appUiState.currImageBitmap,
             onUriSelected = { uri, context -> appViewModel.onUriSelected(uri, context) },
-            predictions = appUiState.apiResponse,
+            apiResponse = appUiState.apiResponse,
             modifier = Modifier
         )
         ApiSelector(
             currApiIdx = appUiState.currApiIdx,
             apiList = apiList,
             onApiSelected = {
-                appViewModel.onSelectApi(it)
+                appViewModel.onSelectApi(it, context)
             }, modifier = Modifier
-        )
-        UploadButton(
-            currStepIdx = appUiState.currStepIdx,
-            predictions = appUiState.apiResponse,
-            onUpload = { appViewModel.onUpload(context, primaryColor, onPrimaryColor) }
         )
     }
 }

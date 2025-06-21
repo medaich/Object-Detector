@@ -3,7 +3,6 @@ package com.example.objectdetector.ui
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import androidx.compose.ui.graphics.Color
 import android.graphics.ImageDecoder
 import android.graphics.Paint
 import android.graphics.Rect
@@ -23,6 +22,8 @@ import com.example.objectdetector.data.DataSource
 import com.example.objectdetector.network.Prediction
 import com.example.objectdetector.network.PredictionRequest
 import com.example.objectdetector.network.restApi
+import com.example.objectdetector.ui.theme.onPrimaryLight
+import com.example.objectdetector.ui.theme.primaryLight
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,35 +51,46 @@ class AppViewModel: ViewModel() {
     private val _uiState = MutableStateFlow(AppUiState())
     val uiState: StateFlow<AppUiState> = _uiState.asStateFlow()
 
-    fun saveImage(bitmap: Bitmap?) {
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun saveImage(bitmap: Bitmap?, context: Context){
         _uiState.update {currState ->
             currState.copy(
                 currImageBitmap = bitmap,
                 apiResponse = null,
                 annotatedBitmap = null,
-                currStepIdx = if(bitmap == null) 0 else 1
+                currStepIdx = when {
+                    bitmap == null -> if (currState.currStepIdx >= 1) 1 else 0
+                    else -> if (currState.currStepIdx >= 1) 2 else 0
+                }
             )
         }
+        if(_uiState.value.currStepIdx == 2)
+            onUpload(context)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun onUriSelected(uri: Uri?, context: Context) = saveImage(uri?.let{
         loadBitmapFromUri(context, it)
-    })
+    }, context)
 
-    fun onSelectApi(idx: Int) {
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun onSelectApi(idx: Int, context: Context) {
         if(idx == _uiState.value.currApiIdx) return
+        if(_uiState.value.apiResponse is ApiResponse.Loading) return
 
         _uiState.update { currState ->
             currState.copy(
                 currApiIdx = idx,
                 annotatedBitmap = null,
-                currStepIdx = if (_uiState.value.currImageBitmap == null) 0 else 2
+                currStepIdx = if (currState.currImageBitmap == null) 1 else 2
             )
         }
+        if(_uiState.value.currStepIdx == 2)
+            onUpload(context)
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun onUpload(context: Context, primaryColor: Color, onPrimaryColor: Color) {
+    fun onUpload(context: Context) {
         // toast preparing the image
         Toast.makeText(
             context,
@@ -88,7 +100,6 @@ class AppViewModel: ViewModel() {
 
         _uiState.update { currState ->
             currState.copy(
-                currStepIdx = 3,
                 apiResponse = ApiResponse.Loading
             )
         }
@@ -113,11 +124,10 @@ class AppViewModel: ViewModel() {
                     _uiState.update { currState ->
                         if (currState.apiResponse is ApiResponse.Success)
                             currState.copy(
+                                currStepIdx = 3,
                                 annotatedBitmap = currState.currImageBitmap?.annotateWithDetections(
                                     currState.apiResponse.data.predictions.first(),
-                                    context,
-                                    primaryColor,
-                                    onPrimaryColor
+                                    context
                                 )
                             )
                         else
@@ -333,9 +343,7 @@ fun pixelImageFromBitmap(bitmap: Bitmap): Array<Array<Array<Int>>> {
 // Extension function to annotate bitmap with detection results
 fun Bitmap.annotateWithDetections(
     prediction: Prediction,
-    context: Context,
-    primaryColor: Color,
-    onPrimaryColor: Color
+    context: Context
 ): Bitmap {
     // Create a mutable copy of the bitmap
     val annotatedBitmap = this.copy(Bitmap.Config.ARGB_8888, true)
@@ -343,7 +351,7 @@ fun Bitmap.annotateWithDetections(
     
     // Paint for bounding boxes
     val boxPaint = Paint().apply {
-        color = primaryColor.toArgb()
+        color = primaryLight.toArgb()
         style = Paint.Style.STROKE
         strokeWidth = 8f
         isAntiAlias = true
@@ -351,14 +359,14 @@ fun Bitmap.annotateWithDetections(
 
     // Paint for labels background
     val labelBackgroundPaint = Paint().apply {
-        color = primaryColor.toArgb()
+        color = primaryLight.toArgb()
         style = Paint.Style.FILL
         isAntiAlias = true
     }
 
     // Paint for label text
     val labelTextPaint = Paint().apply {
-        color = onPrimaryColor.toArgb()
+        color = onPrimaryLight.toArgb()
         textSize = 48f
         isAntiAlias = true
         typeface = Typeface.DEFAULT_BOLD

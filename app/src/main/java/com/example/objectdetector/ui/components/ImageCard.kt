@@ -54,7 +54,7 @@ import java.io.File
 fun ImageCard(
     onUriSelected: (uri: Uri?, context: Context) -> Unit,
     currImageBitmap: Bitmap?,
-    predictions: ApiResponse?,
+    apiResponse: ApiResponse?,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -83,7 +83,7 @@ fun ImageCard(
     )
 
     // Image source selection dialog
-    if (showSourceDialog) {
+    if (showSourceDialog && apiResponse !is ApiResponse.Loading) {
         AlertDialog(
             onDismissRequest = { showSourceDialog = false },
             title = {
@@ -161,7 +161,7 @@ fun ImageCard(
     }
 
     // Full-screen image dialog
-    if (showFullScreenDialog && currImageBitmap != null) {
+    if (showFullScreenDialog && currImageBitmap != null && apiResponse !is ApiResponse.Loading) {
         FullScreenImageDialog(
             bitmap = currImageBitmap,
             onDismiss = { showFullScreenDialog = false }
@@ -208,7 +208,8 @@ fun ImageCard(
                 // Close button
                 CustomIconButton(
                     onClick = {
-                        onUriSelected(null, context)
+                      if (apiResponse !is ApiResponse.Loading)
+                          onUriSelected(null, context)
                     },
                     icon = Icons.Default.Close,
                     iconDescription = stringResource(R.string.close),
@@ -226,7 +227,7 @@ fun ImageCard(
                 )
 
                 PredictionUi(
-                    predictions = predictions,
+                    apiResponse = apiResponse,
                     modifier = Modifier.align(Alignment.Center)
                 )
             }
