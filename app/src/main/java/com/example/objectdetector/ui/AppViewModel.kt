@@ -5,7 +5,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.ImageDecoder
 import android.graphics.Paint
-import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.net.Uri
@@ -33,6 +32,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlin.math.max
+import kotlin.math.min
 
 class AppViewModel: ViewModel() {
 
@@ -339,78 +340,104 @@ fun pixelImageFromBitmap(bitmap: Bitmap): Array<Array<Array<Int>>> {
         throw IllegalStateException("Failed to pixelize bitmap: ${e.message}", e)
     }
 }
-
-// Extension function to annotate bitmap with detection results
 fun Bitmap.annotateWithDetections(
     prediction: Prediction,
     context: Context
 ): Bitmap {
-    // Create a mutable copy of the bitmap
     val annotatedBitmap = this.copy(Bitmap.Config.ARGB_8888, true)
     val canvas = Canvas(annotatedBitmap)
-    
-    // Paint for bounding boxes
+
     val boxPaint = Paint().apply {
         color = primaryLight.toArgb()
         style = Paint.Style.STROKE
-        strokeWidth = 8f
+        strokeWidth = if (prediction.numDetections.toInt() > 10) 4f else 8f // Thinner in dense scenes
         isAntiAlias = true
     }
 
-    // Paint for labels background
     val labelBackgroundPaint = Paint().apply {
         color = primaryLight.toArgb()
         style = Paint.Style.FILL
         isAntiAlias = true
+        alpha = 220 // Slight transparency for readability
     }
 
-    // Paint for label text
     val labelTextPaint = Paint().apply {
         color = onPrimaryLight.toArgb()
-        textSize = 48f
+        textSize = max(12f, min(height * 0.05f, 48f))
         isAntiAlias = true
         typeface = Typeface.DEFAULT_BOLD
     }
 
-    // Process only the relevant detections
+    val drawnLabels = mutableListOf<RectF>()
+    val paddingY = 4f // Reintroduced vertical padding
+    val paddingX = 4f // Increased horizontal padding
+
     prediction.detectionBoxes.slice(0..prediction.numDetections.toInt() - 1)
         .forEachIndexed { index, boundingBox ->
-        // Draw bounding box
-        canvas.drawRect(
-            boundingBox[1] * width,
-            boundingBox[0] * height,
-            boundingBox[3] * width,
-            boundingBox[2] * height,
-            boxPaint
-        )
+            if (prediction.detectionScores[index] < 0.3) return@forEachIndexed // Skip low-confidence
 
-        // Prepare label text
-        val labelText = "${context.getString(
-            DataSource.cocoLabels[
-                prediction.detectionClasses[index].toInt() - 1
-            ]
-        )} (${(prediction.detectionScores[index] * 100).toInt()}%)"
+            val boxLeft = boundingBox[1] * width
+            val boxTop = boundingBox[0] * height
+            val boxRight = boundingBox[3] * width
+            val boxBottom = boundingBox[2] * height
+            canvas.drawRect(boxLeft, boxTop, boxRight, boxBottom, boxPaint)
 
-        // Calculate text bounds
-        val textBounds = Rect()
-        labelTextPaint.getTextBounds(labelText, 0, labelText.length, textBounds)
+            val labelText = "${context.getString(
+                DataSource.cocoLabels[prediction.detectionClasses[index].toInt() - 1]
+            )} (${(prediction.detectionScores[index] * 100).toInt()}%)"
 
-        // Calculate label position
-        val labelX = boundingBox[1] * width + 8f
-        val labelY = boundingBox[0] * height - textBounds.height() + 56f
+            val fontMetrics = labelTextPaint.fontMetrics
+            val textHeight = fontMetrics.descent - fontMetrics.ascent
+            val textWidth = labelTextPaint.measureText(labelText)
+            val labelWidth = textWidth + 2 * paddingX
+            val labelHeight = textHeight + 2 * paddingY
 
-        // Draw label background
-        val labelBackgroundRect = RectF(
-            labelX - 8f,
-            labelY - 8f,
-            labelX + textBounds.width() + 16f,
-            labelY + textBounds.height() + 8f
-        )
-        canvas.drawRoundRect(labelBackgroundRect, 8f, 8f, labelBackgroundPaint)
+            val positions = listOf(
+                Triple("above", boxTop - labelHeight - 4f, boxLeft),
+                Triple("below", boxBottom + 4f, boxLeft),
+                Triple("left", boxTop + (boxBottom - boxTop - labelHeight) / 2, boxLeft - labelWidth - 4f),
+                Triple("right", boxTop + (boxBottom - boxTop - labelHeight) / 2, boxRight + 4f),
+                Triple("inside", boxTop + (boxBottom - boxTop - labelHeight) / 2, boxLeft + (boxRight - boxLeft - labelWidth) / 2)
+            )
 
-        // Draw label text
-        canvas.drawText(labelText, labelX, labelY + textBounds.height(), labelTextPaint)
-    }
+            var labelDrawn = false
+            for ((_, desiredTop, desiredLeft) in positions) {
+                val labelRectTop = max(0f, min(desiredTop, height - labelHeight))
+                val labelRectLeft = max(paddingX, min(desiredLeft, width - labelWidth))
+                val labelRect = RectF(
+                    labelRectLeft,
+                    labelRectTop,
+                    labelRectLeft + labelWidth,
+                    labelRectTop + labelHeight
+                )
+
+                val intersects = drawnLabels.any { RectF.intersects(it, labelRect) }
+                if (!intersects) {
+                    canvas.drawRoundRect(labelRect, 8f, 8f, labelBackgroundPaint)
+                    val baselineY = labelRect.top + paddingY - fontMetrics.ascent
+                    canvas.drawText(labelText, labelRect.left + paddingX, baselineY, labelTextPaint)
+                    drawnLabels.add(labelRect)
+                    labelDrawn = true
+                    break
+                }
+            }
+
+            if (!labelDrawn) {
+                // Fallback: Draw inside the box
+                val labelRectLeft = max(paddingX, min(boxLeft + (boxRight - boxLeft - labelWidth) / 2, width - labelWidth))
+                val labelRectTop = max(0f, min(boxTop + (boxBottom - boxTop - labelHeight) / 2, height - labelHeight))
+                val labelRect = RectF(
+                    labelRectLeft,
+                    labelRectTop,
+                    labelRectLeft + labelWidth,
+                    labelRectTop + labelHeight
+                )
+                canvas.drawRoundRect(labelRect, 8f, 8f, labelBackgroundPaint)
+                val baselineY = labelRect.top + paddingY - fontMetrics.ascent
+                canvas.drawText(labelText, labelRect.left + paddingX, baselineY, labelTextPaint)
+                drawnLabels.add(labelRect)
+            }
+        }
 
     return annotatedBitmap
 }
